@@ -55,28 +55,21 @@
         if (!rule?.dropdown_allow) return;
         const allow = rule.dropdown_allow.map(i => i.toLowerCase());
         
-        // Try multiple selectors to catch all menu items
-        const selectors = [
-            '[role="menuitem"]',
-            '.menu-item',
-            '.dropdown-item',
-            '.dropdown-menu a',
-            '.dropdown-menu .dropdown-item'
-        ];
-        
-        selectors.forEach(selector => {
-            document.querySelectorAll(selector).forEach(item => {
-                const text = item.innerText?.trim().toLowerCase();
-                if (!text) return;
-                
-                // Skip if already processed
-                if (item.dataset.uiLocked) return;
-                
-                if (!allow.includes(text)) {
-                    item.dataset.uiLocked = "true";
-                    item.remove();
-                }
-            });
+        // Target the specific Frappe v16 dropdown structure
+        document.querySelectorAll('.dropdown-menu-item').forEach(item => {
+            // Get text from the menu-item-title span
+            const titleSpan = item.querySelector('.menu-item-title');
+            const text = titleSpan?.innerText?.trim().toLowerCase();
+            
+            if (!text) return;
+            
+            // Skip if already processed
+            if (item.dataset.uiLocked) return;
+            
+            if (!allow.includes(text)) {
+                item.dataset.uiLocked = "true";
+                item.remove();
+            }
         });
     }
 
@@ -84,25 +77,23 @@
     // INTERCEPT DROPDOWN CLICKS
     // ==========================
     function interceptDropdownClick() {
-        // Find the sidebar dropdown toggle button
-        const dropdownToggle = document.querySelector('.sidebar-menu .dropdown-toggle, [data-toggle="dropdown"]');
+        // Find the sidebar dropdown toggle button (the three dots menu)
+        const dropdownToggles = document.querySelectorAll('[data-toggle="dropdown"], .dropdown-toggle');
         
-        if (dropdownToggle && !dropdownToggle.dataset.intercepted) {
-            dropdownToggle.dataset.intercepted = "true";
+        dropdownToggles.forEach(toggle => {
+            if (toggle.dataset.intercepted) return;
+            toggle.dataset.intercepted = "true";
             
-            dropdownToggle.addEventListener('click', () => {
-                // Filter dropdown items after a short delay to ensure DOM is updated
-                setTimeout(() => {
-                    const rule = getActiveRule();
-                    if (rule) filterDropdown(rule);
-                }, 50);
+            toggle.addEventListener('click', () => {
+                const rule = getActiveRule();
+                if (!rule) return;
                 
-                setTimeout(() => {
-                    const rule = getActiveRule();
-                    if (rule) filterDropdown(rule);
-                }, 150);
+                // Filter dropdown items after short delays to ensure DOM is ready
+                setTimeout(() => filterDropdown(rule), 50);
+                setTimeout(() => filterDropdown(rule), 150);
+                setTimeout(() => filterDropdown(rule), 300);
             });
-        }
+        });
     }
 
     // ==========================
@@ -133,7 +124,7 @@
         subtree: true
     });
     
-    // Also run periodically for the first few seconds (aggressive approach)
+    // Also run periodically for the first few seconds
     let attempts = 0;
     const interval = setInterval(() => {
         enforce();
