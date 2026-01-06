@@ -55,21 +55,54 @@
         if (!rule?.dropdown_allow) return;
         const allow = rule.dropdown_allow.map(i => i.toLowerCase());
         
-        document
-            .querySelectorAll('[role="menuitem"], .menu-item')
-            .forEach(item => {
+        // Try multiple selectors to catch all menu items
+        const selectors = [
+            '[role="menuitem"]',
+            '.menu-item',
+            '.dropdown-item',
+            '.dropdown-menu a',
+            '.dropdown-menu .dropdown-item'
+        ];
+        
+        selectors.forEach(selector => {
+            document.querySelectorAll(selector).forEach(item => {
                 const text = item.innerText?.trim().toLowerCase();
                 if (!text) return;
                 
+                // Skip if already processed
+                if (item.dataset.uiLocked) return;
+                
                 if (!allow.includes(text)) {
-                    // Mark as processed to avoid re-processing same element
-                    if (item.dataset.locked) return;
-                    item.dataset.locked = "true";
-                    
-                    // Remove the element entirely from the DOM
+                    item.dataset.uiLocked = "true";
                     item.remove();
                 }
             });
+        });
+    }
+
+    // ==========================
+    // INTERCEPT DROPDOWN CLICKS
+    // ==========================
+    function interceptDropdownClick() {
+        // Find the sidebar dropdown toggle button
+        const dropdownToggle = document.querySelector('.sidebar-menu .dropdown-toggle, [data-toggle="dropdown"]');
+        
+        if (dropdownToggle && !dropdownToggle.dataset.intercepted) {
+            dropdownToggle.dataset.intercepted = "true";
+            
+            dropdownToggle.addEventListener('click', () => {
+                // Filter dropdown items after a short delay to ensure DOM is updated
+                setTimeout(() => {
+                    const rule = getActiveRule();
+                    if (rule) filterDropdown(rule);
+                }, 50);
+                
+                setTimeout(() => {
+                    const rule = getActiveRule();
+                    if (rule) filterDropdown(rule);
+                }, 150);
+            });
+        }
     }
 
     // ==========================
@@ -82,6 +115,7 @@
 
         enforceLanding(rule);
         filterDropdown(rule);
+        interceptDropdownClick();
     }
 
     // ==========================
@@ -89,8 +123,21 @@
     // ==========================
     frappe.after_ajax(enforce);
     frappe.router.on("change", enforce);
+    
+    // Run on initial load
+    $(document).ready(enforce);
+    
+    // Watch for DOM changes
     new MutationObserver(enforce).observe(document.body, {
         childList: true,
         subtree: true
     });
+    
+    // Also run periodically for the first few seconds (aggressive approach)
+    let attempts = 0;
+    const interval = setInterval(() => {
+        enforce();
+        attempts++;
+        if (attempts > 10) clearInterval(interval);
+    }, 500);
 })();
