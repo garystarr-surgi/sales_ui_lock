@@ -36,7 +36,7 @@
     }
 
     // ==========================
-    // FORCE LANDING WORKSPACE
+    // FORCE SELLING WORKSPACE
     // ==========================
     function enforceLanding(rule) {
         if (!rule?.landing || !frappe?.set_route) return;
@@ -53,7 +53,7 @@
     function disableMenuItems(rule) {
         if (!rule?.dropdown_block) return;
 
-        const block = rule.dropdown_block.map(i => i.toLowerCase());
+        const block = rule.dropdown_block.map(v => v.toLowerCase());
 
         document.querySelectorAll('.dropdown-menu-item').forEach(item => {
             const text = item
@@ -61,70 +61,53 @@
                 ?.innerText?.trim().toLowerCase();
 
             if (!text || !block.includes(text)) return;
-            if (item.dataset.disabled) return;
+            if (item.dataset.locked) return;
 
-            item.dataset.disabled = "true";
+            item.dataset.locked = "1";
             item.style.opacity = "0.4";
             item.style.pointerEvents = "none";
         });
     }
 
     // ==========================
-    // HARD REMOVE WORKSPACE SIDEBAR (v16)
+    // LOCK DESK SIDEBAR CONTENT
+    // (v16 SAFE — keeps logout)
     // ==========================
-    function removeWorkspaceSidebar() {
-        // 1. Force desk layout into no-sidebar mode
-        const desk = document.querySelector('.desk-container, .layout-main');
-        if (desk) {
-            desk.setAttribute('data-sidebar', 'false');
-            desk.classList.add('no-sidebar');
-        }
+    function lockDeskSidebar() {
+        const sidebar = document.querySelector('.desk-sidebar, .sidebar-column');
+        if (!sidebar) return;
 
-        // 2. Kill the grid column used by workspace sidebar
-        document.querySelectorAll(
-            '.layout-side-section, .desk-sidebar, .workspace-sidebar'
-        ).forEach(el => {
+        // Disable all interactions by default
+        sidebar.style.pointerEvents = 'none';
+
+        // Walk every element inside
+        sidebar.querySelectorAll('*').forEach(el => {
+            const text = el.innerText?.toLowerCase() || '';
+
+            // Allow logout + avatar
+            if (
+                el.closest('.user-menu') ||
+                el.closest('.avatar') ||
+                text.includes('log out') ||
+                text.includes('logout')
+            ) {
+                el.style.pointerEvents = 'auto';
+                el.style.display = '';
+                return;
+            }
+
+            // Hide everything else
             el.style.display = 'none';
-            el.style.width = '0';
-            el.style.minWidth = '0';
-            el.style.maxWidth = '0';
         });
 
-        // 3. Expand main content area
-        document.querySelectorAll(
-            '.layout-main-section, .desk-page'
-        ).forEach(el => {
-            el.style.marginLeft = '0';
-            el.style.width = '100%';
-            el.style.maxWidth = '100%';
-        });
-
-        // 4. Inject CSS that Vue cannot undo
-        if (!document.getElementById('sales-ui-lock-css')) {
-            const style = document.createElement('style');
-            style.id = 'sales-ui-lock-css';
-            style.innerHTML = `
-                .layout-side-section,
-                .desk-sidebar,
-                .workspace-sidebar,
-                .sidebar-column {
-                    display: none !important;
-                    width: 0 !important;
-                }
-
-                .layout-main-section,
-                .desk-page {
-                    margin-left: 0 !important;
-                    width: 100% !important;
-                    max-width: 100% !important;
-                }
-            `;
-            document.head.appendChild(style);
-        }
+        // Visually collapse sidebar (but do not remove)
+        sidebar.style.width = '48px';
+        sidebar.style.minWidth = '48px';
+        sidebar.style.maxWidth = '48px';
     }
 
     // ==========================
-    // MAIN ENFORCEMENT
+    // MAIN ENFORCEMENT LOOP
     // ==========================
     function enforce() {
         if (!frappe?.user_roles || isAdmin()) return;
@@ -134,11 +117,11 @@
 
         enforceLanding(rule);
         disableMenuItems(rule);
-        removeWorkspaceSidebar();
+        lockDeskSidebar();
     }
 
     // ==========================
-    // INIT
+    // INIT (v16 requires persistence)
     // ==========================
     function init() {
         if (!frappe?.user_roles) {
@@ -148,10 +131,10 @@
 
         if (isAdmin()) return;
 
-        // v16 requires constant enforcement
+        // Continuous enforcement (Vue re-mounts)
         setInterval(enforce, 250);
 
-        // Vue rerenders → observe DOM
+        // DOM mutations (workspace / desk rebuilds)
         const observer = new MutationObserver(enforce);
         observer.observe(document.body, {
             childList: true,
