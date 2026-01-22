@@ -8,6 +8,7 @@
       landing: "selling",
       dropdown_block: [
         "Workspaces",
+        "Assets",
         "Desktop",
         "Website",
         "Help",
