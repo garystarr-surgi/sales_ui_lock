@@ -7,6 +7,7 @@
     "Sales User": {
       landing: "selling",
       dropdown_block: [
+        "Workspaces",
         "Desktop",
         "Website",
         "Help",
