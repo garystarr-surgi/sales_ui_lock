@@ -84,6 +84,96 @@ def ensure_workspace_exists():
 		)
 
 
+def ensure_sales_user_sidebar():
+	"""
+	Ensure the "Sales User" workspace has a matching Workspace Sidebar.
+	This is required for the workspace to appear properly.
+	"""
+	sidebar_name = "Sales User"
+	workspace_name = "Sales User"
+	
+	print(f"\n>>> Sales UI Lock: Ensuring Workspace Sidebar for '{sidebar_name}'...")
+	
+	try:
+		if frappe.db.exists("Workspace Sidebar", sidebar_name):
+			print(f">>> Sales UI Lock: Workspace Sidebar '{sidebar_name}' already exists")
+			return
+		
+		print(f">>> Sales UI Lock: Creating Workspace Sidebar '{sidebar_name}'...")
+		
+		sidebar = frappe.get_doc({
+			"doctype": "Workspace Sidebar",
+			"name": sidebar_name,
+			"title": "Sales User",
+			"module": "Sales UI Lock",
+			"header_icon": "sales-upsell",
+			"items": [
+				{
+					"type": "Link",
+					"label": "Home",
+					"link_to": workspace_name,
+					"link_type": "Workspace",
+					"icon": "home",
+					"child": 0,
+					"collapsible": 1,
+					"indent": 0,
+					"keep_closed": 0,
+					"show_arrow": 0,
+				},
+				{
+					"type": "Link",
+					"label": "Customer",
+					"link_to": "Customer",
+					"link_type": "DocType",
+					"icon": "users",
+					"child": 0,
+					"collapsible": 1,
+					"indent": 0,
+					"keep_closed": 0,
+					"show_arrow": 0,
+				},
+				{
+					"type": "Link",
+					"label": "Quotation",
+					"link_to": "Quotation",
+					"link_type": "DocType",
+					"icon": "clipboard",
+					"child": 0,
+					"collapsible": 1,
+					"indent": 0,
+					"keep_closed": 0,
+					"show_arrow": 0,
+				},
+				{
+					"type": "Link",
+					"label": "Sales Order",
+					"link_to": "Sales Order",
+					"link_type": "DocType",
+					"icon": "clipboard",
+					"child": 0,
+					"collapsible": 1,
+					"indent": 0,
+					"keep_closed": 0,
+					"show_arrow": 0,
+				},
+			]
+		})
+		
+		sidebar.flags.ignore_permissions = True
+		sidebar.insert()
+		frappe.db.commit()
+		frappe.clear_cache(doctype="Workspace Sidebar")
+		frappe.clear_cache()
+		print(f">>> Sales UI Lock: Successfully created Workspace Sidebar '{sidebar_name}'")
+		
+	except Exception as e:
+		print(f">>> Sales UI Lock: ERROR creating Workspace Sidebar - {str(e)}")
+		frappe.log_error(
+			title="Sales UI Lock Workspace Sidebar Creation - ERROR",
+			message=frappe.get_traceback(),
+		)
+
+
 def cleanup_old_workspaces():
 	"""
 	Remove old/renamed workspaces to prevent duplicates.
