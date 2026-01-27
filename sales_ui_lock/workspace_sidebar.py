@@ -63,6 +63,30 @@ def ensure_sales_sidebar():
 				"keep_closed": 0,
 				"show_arrow": 0,
 			},
+			{
+				"type": "Link",
+				"label": "Item",
+				"link_to": "Item",
+				"link_type": "DocType",
+				"icon": "info-circle",
+				"child": 0,
+				"collapsible": 1,
+				"indent": 0,
+				"keep_closed": 0,
+				"show_arrow": 0,
+			},
+			{
+				"type": "Link",
+				"label": "Items on Hold",
+				"link_to": "Items on Hold",
+				"link_type": "Report",
+				"icon": "clipboard-text",
+				"child": 0,
+				"collapsible": 1,
+				"indent": 0,
+				"keep_closed": 0,
+				"show_arrow": 0,
+			}
 		]
 
 		if frappe.db.exists("Workspace Sidebar", sidebar_name):
